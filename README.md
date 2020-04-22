@@ -29,7 +29,7 @@ https://www.cog-genomics.org/plink/
 
 When you see code with backslash this just means continue the same command but on a new line. 
 
-Also I recommend always looking at the plink log/output from your commands, check the total genotyping rate, number of variants, and number of individuals to make sure everything looks sensible, that you removing the expected number of individuals etc.
+Also I recommend always looking at the plink log/output from your commands, check the total genotyping rate, number of variants, and number of individuals to make sure everything looks sensible, that you are removing the expected number of individuals etc.
 
 I name all my files so that you can see exactly what has been done at each step, and which filters have been applied in each set of binary files that you make everytime with --make-bed in plink.
 

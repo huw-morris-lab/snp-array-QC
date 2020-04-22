@@ -251,114 +251,260 @@ plink --bfile NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.
 --out NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe.IBD_0.1
 ```
 
-#PCA - using pruned SNP list. Only merging with CEU individuals
+# 6. PCA
 
-	#HapMap SNP list is available in /data/kronos/NGS_Reference/HapMap_Reference/
-	#I made a copy of these files in my local directory
+This does PCA using pruned SNP list. Only merging with CEU individuals
 
-	#Extract HapMap SNPs
-	plink --bfile NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe.IBD_0.1 \
-	--extract /data/kronos/mtan/reference/hapmap/hapmap3r2_CEU.CHB.JPT.YRI.no-at-cg-snps.txt \
-	--make-bed \
-	--out NeuroChip.hapmap_SNPs
-	#188843 variants
-	#Genotyping rate 0.999076
+HapMap SNP list is available in /data/kronos/NGS_Reference/HapMap_Reference/.
 
-	#Extract CEU individuals from HapMap dataset
-	#Downloaded from https://ftp.ncbi.nlm.nih.gov/hapmap/samples_individuals/relationships_w_pops_121708.txt
-	#I filtered in R to just get the IDs of the CEU individuals from this list
+I made a copy of these files in my local directory
 
-	plink --bfile /data/kronos/mtan/reference/hapmap/hapmap3r2_CEU.CHB.JPT.YRI.founders.no-at-cg-snps \
-	--keep /data/kronos/mtan/reference/hapmap/HapMap_CEU.txt \
-	--make-bed \
-	--out /data/kronos/mtan/reference/hapmap/hapmap3r2_CEU.CHB.JPT.YRI.founders.no-at-cg-snps.CEU_only
-	#112 CEU individuals from HapMap data (not all the individuals in the relationships w pops file are in the binary files)
+Extract HapMap SNPs from your dataset.
+```
+plink --bfile NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe.IBD_0.1 \
+--extract /data/kronos/mtan/reference/hapmap/hapmap3r2_CEU.CHB.JPT.YRI.no-at-cg-snps.txt \
+--make-bed \
+--out NeuroChip.hapmap_SNPs
+```
 
-	#Merge PROBAND data with HapMap CEU data and extract pruned SNPs
-	plink --bfile NeuroChip.hapmap_SNPs \
-	--bmerge /data/kronos/mtan/reference/hapmap/hapmap3r2_CEU.CHB.JPT.YRI.founders.no-at-cg-snps.CEU_only.bed \
-	/data/kronos/mtan/reference/hapmap/hapmap3r2_CEU.CHB.JPT.YRI.founders.no-at-cg-snps.CEU_only.bim \
-	/data/kronos/mtan/reference/hapmap/hapmap3r2_CEU.CHB.JPT.YRI.founders.no-at-cg-snps.CEU_only.fam \
-	--extract NeuroChip.pruned.prune.in \
-	--make-bed \
-	--out NeuroChip.hapmap_SNPs.CEU_only.merged-pruned
+Extract CEU individuals from HapMap dataset.
 
-	#At first pass this will come up witth errors for variants with 3+ alleles present
-	#Need to flip missnps
+Downloaded from https://ftp.ncbi.nlm.nih.gov/hapmap/samples_individuals/relationships_w_pops_121708.txt
 
-	plink --bfile NeuroChip.hapmap_SNPs \
-	--flip NeuroChip.hapmap_SNPs.CEU_only.merged-pruned-merge.missnp \
-	--make-bed \
-	--out NeuroChip.hapmap_SNPs.CEU_only.flipped_missnps
-	#188843 variants
-	#94356 variants flipped
+I filtered in R to just get the IDs of the CEU individuals from this list (included in the PCA R code later on).
 
-	#Remerge and extract pruned SNPs. Only CEU individuals from HapMap
-	plink --bfile NeuroChip.hapmap_SNPs.CEU_only.flipped_missnps \
-	--bmerge /data/kronos/mtan/reference/hapmap/hapmap3r2_CEU.CHB.JPT.YRI.founders.no-at-cg-snps.CEU_only.bed \
-	/data/kronos/mtan/reference/hapmap/hapmap3r2_CEU.CHB.JPT.YRI.founders.no-at-cg-snps.CEU_only.bim \
-	/data/kronos/mtan/reference/hapmap/hapmap3r2_CEU.CHB.JPT.YRI.founders.no-at-cg-snps.CEU_only.fam \
-	--extract NeuroChip.pruned.prune.in \
-	--make-bed \
-	--out NeuroChip.hapmap_SNPs.CEU_only.flipped_missnps.merged-pruned
-	#21362 variants
-	#Genotyping rate 0.998559.
-	#422 people (with HapMap CEU samples)
+```
+plink --bfile /data/kronos/mtan/reference/hapmap/hapmap3r2_CEU.CHB.JPT.YRI.founders.no-at-cg-snps \
+--keep /data/kronos/mtan/reference/hapmap/HapMap_CEU.txt \
+--make-bed \
+--out /data/kronos/mtan/reference/hapmap/hapmap3r2_CEU.CHB.JPT.YRI.founders.no-at-cg-snps.CEU_only
+```
 
-	#Create genetic principal components from the merged (your data + HapMap CEU) and pruned dataset
-	gcta --bfile NeuroChip.hapmap_SNPs.CEU_only.flipped_missnps.merged-pruned \
-	--make-grm \
-	--autosome \
-	--out NeuroChip.hapmap_SNPs.CEU_only.flipped_missnps.merged-pruned.matrix
+Merge your data with HapMap CEU data and extract pruned SNPs
+```
+plink --bfile NeuroChip.hapmap_SNPs \
+--bmerge /data/kronos/mtan/reference/hapmap/hapmap3r2_CEU.CHB.JPT.YRI.founders.no-at-cg-snps.CEU_only.bed \
+/data/kronos/mtan/reference/hapmap/hapmap3r2_CEU.CHB.JPT.YRI.founders.no-at-cg-snps.CEU_only.bim \
+/data/kronos/mtan/reference/hapmap/hapmap3r2_CEU.CHB.JPT.YRI.founders.no-at-cg-snps.CEU_only.fam \
+--extract NeuroChip.pruned.prune.in \
+--make-bed \
+--out NeuroChip.hapmap_SNPs.CEU_only.merged-pruned
+```
 
-	#Run PCA to generate 10 principal components
-	gcta --grm NeuroChip.hapmap_SNPs.CEU_only.flipped_missnps.merged-pruned.matrix --pca 10
+At first pass this will come up witth errors for variants with 3+ alleles present. This may be because the alleles are swapped so don't match in your data to the HapMap data. Need to flip missnps.
+```
+plink --bfile NeuroChip.hapmap_SNPs \
+--flip NeuroChip.hapmap_SNPs.CEU_only.merged-pruned-merge.missnp \
+--make-bed \
+--out NeuroChip.hapmap_SNPs.CEU_only.flipped_missnps
+```
 
-	#Alternatively you can run the PCA in plink, rather than gcta. These come up with similar results
-	plink --bfile NeuroChip.hapmap_SNPs.CEU_only.flipped_missnps.merged-pruned \
-	--pca \
-	--out PCA.plink
+Remerge and extract pruned SNPs. Only CEU individuals from HapMap.
+```
+plink --bfile NeuroChip.hapmap_SNPs.CEU_only.flipped_missnps \
+--bmerge /data/kronos/mtan/reference/hapmap/hapmap3r2_CEU.CHB.JPT.YRI.founders.no-at-cg-snps.CEU_only.bed \
+/data/kronos/mtan/reference/hapmap/hapmap3r2_CEU.CHB.JPT.YRI.founders.no-at-cg-snps.CEU_only.bim \
+/data/kronos/mtan/reference/hapmap/hapmap3r2_CEU.CHB.JPT.YRI.founders.no-at-cg-snps.CEU_only.fam \
+--extract NeuroChip.pruned.prune.in \
+--make-bed \
+--out NeuroChip.hapmap_SNPs.CEU_only.flipped_missnps.merged-pruned
+```
 
-	##In R - run PCA_script.R
-	#This makes PCA plots, and writes list of PCA outliers to remove who are >6SD away from the mean of any of the first 10 PCs
-	#Adjust cutoffs if necessary
+Check how many variants you have here and what the genotyping rate is. Cornelis recommends you need at least 10K independent SNPs (linkage pruned) to do your PCA, so if you have less you should check why.
 
-	plink --bfile NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe.IBD_0.1 \
-	--remove PCA_outliers.txt \
-	--make-bed \
-	--out NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe.IBD_0.1.PCA_keep
-	#308 individuals remaining
-	#2 individuals removed
+Create genetic principal components from the merged (your data + HapMap CEU) and pruned dataset
 
+```
+gcta --bfile NeuroChip.hapmap_SNPs.CEU_only.flipped_missnps.merged-pruned \
+--make-grm \
+--autosome \
+--out NeuroChip.hapmap_SNPs.CEU_only.flipped_missnps.merged-pruned.matrix
 
-##FINAL PRE-IMPUTATION
-#266045 variants
-#1812 individuals
+#Run PCA to generate 10 principal components
+gcta --grm NeuroChip.hapmap_SNPs.CEU_only.flipped_missnps.merged-pruned.matrix --pca 10
+```
+
+Alternatively you can run the PCA in plink, rather than gcta. These come up with similar results
+```
+plink --bfile NeuroChip.hapmap_SNPs.CEU_only.flipped_missnps.merged-pruned \
+--pca \
+--out PCA.plink
+```
 
 
-### PREPARE FOR IMPUTATION ###
+In R, I run this code to make PCA plots, and writes list of PCA outliers to remove who are >6SD away from the mean of any of the first 10 PCs. Adjust cutoffs if necessary.
 
-#Split into separate chromosomes (loop over all chromosomes)
+```
+library(tidyverse)
 
-sh 
-for chr in {1..23}
-do
-plink --bfile HTS_HD_Chips_MAF_GENO_HWE_MIND-updated.PD_cases.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe.IBD_0.1.PCA_keep --chr $chr --recode vcf --out PROBAND_chr$chr
- done
- 
-#Chromosome 23 must be recoded as Chr X otherwise Michigan server will produce error
-plink --bfile HTS_HD_Chips_MAF_GENO_HWE_MIND-updated.PD_cases.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe.IBD_0.1.PCA_keep --chr 23 --output-chr MT --recode vcf --out PROBAND_chrX
+#---Load principal components generated from GCTA---####
+#This is the PCA from your data merged with HapMap
+#Using linkage-pruned SNPs, MAF > 5%, excluding palindromic SNPs and flipping missnps
 
-#Create sorted vcf.gz file (loop over all chromosomes)
+#Read in eigenvectors
+geneticPCA_hapmap.eigenvec <- as_tibble(read.table("gcta.eigenvec", sep = ""))
 
-sh
-for chr in {1..23}
-do
-vcf-sort PROBAND_chr$chr.vcf | bgzip -c > PROBAND_chr$chr.vcf.gz
-done
+#Change column names
+geneticPCA_hapmap.eigenvec <- geneticPCA_hapmap.eigenvec %>% 
+  dplyr::rename(FID = V1,
+                IID = V2,
+                PC1 = V3,
+                PC2 = V4,
+                PC3 = V5,
+                PC4 = V6,
+                PC5 = V7,
+                PC6 = V8,
+                PC7 = V9,
+                PC8 = V10,
+                PC9 = V11,
+                PC10 = V12)
 
-#For X chromosome
-vcf-sort PROBAND_chrX.vcf | bgzip -c > PROBAND_chrX.vcf.gz
 
-#Phasing for X chromosome cannot be done with Eagle. Have left out X chromosome from imputation
+#---Read in data about HapMap samples (ethnicity)---####
+
+#Read in population data for HapMap samples (adjust your directory to wherever you have kept this file).
+HapMap_pops <- as_tibble(read.table("../../../../reference/hapmap/relationships_w_pops_121708.txt",
+                                    header = TRUE))
+
+#---Write list of CEU HapMap samples only---####
+#To extract from HapMap dataset
+
+#Write list of CEU HapMap samples only
+HapMap_pops_CEU <- HapMap_pops %>% 
+  filter(population == "CEU") %>% 
+  select(FID, IID)
+
+write.table(HapMap_pops_CEU, "../../../../reference/hapmap/HapMap_CEU.txt",
+            quote = FALSE, col.names = FALSE, row.names = FALSE)
+
+#---Merge PROBAND PCA data with HapMap population data---####
+
+geneticPCA_hapmap.eigenvec$FID <- as.factor(geneticPCA_hapmap.eigenvec$FID)
+
+#Join with PCA data table
+geneticPCA_hapmap.eigenvec <- geneticPCA_hapmap.eigenvec %>% 
+  left_join(HapMap_pops)
+
+#If the population is missing, these should be our samples (check this)
+geneticPCA_hapmap.eigenvec <- geneticPCA_hapmap.eigenvec %>% 
+  dplyr::mutate(group = ifelse(!is.na(population), population, "QSBB"))
+
+#Make new variable for group (population)
+geneticPCA_hapmap.eigenvec <- geneticPCA_hapmap.eigenvec %>% 
+  mutate(group = ifelse(group == 2, "CEU",
+                        ifelse(group == "QSBB", "QSBB", NA)))
+
+#---Plot first two Principal Components with HapMap samples---####
+
+ggplot(data = geneticPCA_hapmap.eigenvec, aes(x = PC1, y = PC2, color = group)) +
+  geom_point(size = 0.9, alpha = 0.7) +
+  scale_color_discrete(breaks=c("QSBB","CEU")) +
+  theme_bw() +
+  ggsave("PCA_HapMap_CEUsamples.png")
+
+#---Classify outliers who are > 6 SDs away from mean for any of the first 10 PCs---####
+
+#Individuals who were more than 6 standard deviations away from the mean of the any of the first 10 principal components were removed.
+#Each PC mean is calculated, and any individual who is away from the mean on any of the PCs is removed
+
+#Look at the mean for each PC
+geneticPCA.eigenvec.PCmeans <- geneticPCA_hapmap.eigenvec %>% 
+  dplyr::mutate(mean_PC1 = mean(PC1),
+                mean_PC2 = mean(PC2),
+                mean_PC3 = mean(PC3),
+                mean_PC4 = mean(PC4),
+                mean_PC5 = mean(PC5),
+                mean_PC6 = mean(PC6),
+                mean_PC7 = mean(PC7),
+                mean_PC8 = mean(PC8),
+                mean_PC9 = mean(PC9),
+                mean_PC10 = mean(PC10))
+
+## Remove individuals who are outliers on any PC
+
+#Make results table, with one row for each individual
+PC.outlierResults <- as.data.frame(matrix(ncol = 11, nrow = nrow(geneticPCA_hapmap.eigenvec)))
+PC.outlierResults[, 1] <- geneticPCA_hapmap.eigenvec$IID #Put your IIDs in the first column
+
+
+#For loop to calculate the SDs of each Principal Component (first 10 PCs only)
+#This outputs into a results table
+for (i in 3:12) {
+  mean <- mean(geneticPCA.eigenvec.PCmeans[[i]])
+  sd <- sd(geneticPCA.eigenvec.PCmeans[[i]])
+  
+  PC.outlierResults[, i-1] <- geneticPCA.eigenvec.PCmeans %>% 
+    mutate(outlier = ifelse(geneticPCA.eigenvec.PCmeans[[i]] > mean + 6*sd, "outlier",
+                            ifelse(geneticPCA.eigenvec.PCmeans[[i]] < mean - 6*sd, "outlier", "keep"))) %>% 
+    dplyr::select(outlier)
+}
+
+#Rename column names
+PC.outlierResults <- PC.outlierResults %>% 
+  dplyr::rename(ID = V1,
+                PC1_result = V2,
+                PC2_result = V3,
+                PC3_result = V4,
+                PC4_result = V5,
+                PC5_result = V6,
+                PC6_result = V7,
+                PC7_result = V8,
+                PC8_result = V9,
+                PC9_result = V10,
+                PC10_result = V11)
+
+#Now merge the outlier results with the main dataset
+geneticPCA.eigenvec.PCmeans <- geneticPCA.eigenvec.PCmeans %>% 
+  left_join(PC.outlierResults, by = c("IID" = "ID"))
+
+#If any of the PC results are outliers, flag as outlier
+geneticPCA.eigenvec.PCmeans <- geneticPCA.eigenvec.PCmeans %>% 
+  mutate(PCA_outlier = ifelse(PC1_result == "outlier" |
+                                PC2_result == "outlier" |
+                                PC3_result == "outlier" |
+                                PC4_result == "outlier" |
+                                PC5_result == "outlier" |
+                                PC6_result == "outlier" |
+                                PC7_result == "outlier" |
+                                PC8_result == "outlier" |
+                                PC9_result == "outlier" |
+                                PC10_result == "outlier", "outlier final", "keep final"))
+
+#Plot first 2 PCs by outlier status (this includes both the HapMap samples and your samples).
+ggplot(data = geneticPCA.eigenvec.PCmeans, mapping = aes(x = PC1, y = PC2, color = PCA_outlier)) +
+  geom_point(alpha = 0.2) +
+  theme_bw()
+
+#Plot third and fourth PC by outlier status
+ggplot(data = geneticPCA.eigenvec.PCmeans, mapping = aes(x = PC3, y = PC4, color = PCA_outlier)) +
+  geom_point(alpha = 0.2) +
+  theme_bw()
+
+#Count how many outliers
+geneticPCA.eigenvec.PCmeans %>% 
+  group_by(PCA_outlier) %>% 
+  filter(group == "QSBB") %>% 
+  dplyr::summarise(count = n())
+
+#---Write list of samples that are population outliers---####
+#To remove in PLINK
+
+PCA_outliers <- geneticPCA.eigenvec.PCmeans %>% 
+  filter(PCA_outlier == "outlier final") %>% 
+  filter(group == "QSBB") %>% 
+  select(FID, IID)
+
+#Write text file of FID and IID
+write.table(PCA_outliers, "PCA_outliers.txt",
+            row.names = FALSE, quote = FALSE, col.names = FALSE)
+```
+
+Remove PCA outliers using plink, using the list of individuals that you just made in R.
+```
+plink --bfile NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe.IBD_0.1 \
+--remove PCA_outliers.txt \
+--make-bed \
+--out NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe.IBD_0.1.PCA_keep
+```
+
 

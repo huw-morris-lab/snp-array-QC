@@ -27,7 +27,7 @@ http://zzz.bwh.harvard.edu/plink/
 https://www.cog-genomics.org/plink/
 
 
-When you see code with "[\]" this just means continue the same command but on a new line. 
+When you see code with "U+005C" this just means continue the same command but on a new line. 
 
 Also I recommend always looking at the plink log/output from your commands, check the total genotyping rate, number of variants, and number of individuals to make sure everything looks sensible.
 

@@ -27,7 +27,7 @@ http://zzz.bwh.harvard.edu/plink/
 https://www.cog-genomics.org/plink/
 
 
-When you see code with "&#005" this just means continue the same command but on a new line. 
+When you see code with backslash this just means continue the same command but on a new line. 
 
 Also I recommend always looking at the plink log/output from your commands, check the total genotyping rate, number of variants, and number of individuals to make sure everything looks sensible.
 
@@ -86,65 +86,129 @@ This makes a plot called imiss_het_plot.pdf (you can change the name).
 
 Plot sample heterozygosity and genotyping rates in R. This code makes a text file with samples to remove with FID and IID. Remove samples who do not meet call rate (>98%) or heterozygosity (2SDs away from mean) cutoffs. You can edit cutoffs depending on your data.
 
+```
+library(tidyverse)
 
-	#Remove samples who do not meet call rate (>98%) or heterozygosity (2SDs away from mean) cutoffs
+#Read in sample heterozygosity table
+sample_het <- read.table("NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.het", header = TRUE)
 
-	plink --bfile NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01 \
-	--remove samples_to_remove.txt \
-	--make-bed \
-	--out NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD
-	#329 individuals remaining
-	#10 samples removed
+#Read in sample call rate table
+sample_callrate <- read.table("NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.imiss", header = TRUE)
 
-### Sex checking ###
+#Calculate proportion of heterozygosity
+sample_het <- sample_het %>% 
+  mutate(het = (N.NM. - O.HOM.)/N.NM.)
 
-	#First update clincal genders in fam file
-	#Need to create a .txt file with FID, IID and clinical sex (1 or M = male, 2 or F = female, 0 = missing)
-	plink --bfile NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD \
-	--update-sex QSBB_clinicalGenders.txt \
-	--make-bed \
-	--out NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex
+#Calculate mean and SD of heterozygosity
+summary <- sample_het %>% 
+  summarise(mean_het = mean(het),
+            sd_het = sd(het))
 
-	#Sex checking in plink
-	plink --bfile NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex \
-	--check-sex 0.2 0.7 \
-	--out NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexcheck_results
+mean_het <- summary[1,1]
+sd_het <- summary[1,2]
 
-	#Can open the .sexcheck file in text editor. Check the mismatches. If there are lot, espcially on a plate, then there may have been a problem with the genotyping (plate flip, sample mixup)
-
-	#Write list of samples that pass sexcheck (FID and IID)
-	#If the clinical gender is missing (column 3 is 0) then these samples will still be included in this step
-	#But you should definitely try to get the clinical gender for these samples
-	cat NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexcheck_results.sexcheck | awk '($3=="0" || $5=="OK") {print $1 "\t"$2}' > sex_samples_to_keep.txt
-
-	#Remove sex discordant samples
-	plink --bfile NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex \
-	--keep sex_samples_to_keep.txt \
-	--make-bed \
-	--out NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass
-	#315 individuals remaining
-	#14 individuals removed
-
-### Hardy Weinberg Equilibrium filtering ###
-
-	#Debatable whether you do this filtering step in controls only, not the full dataset. 
-
-	#I have applied this filter when working with PD cases only. It is up to you.
-
-	#Also if you are working with rare variants (e.g. not GWAS), you may not want to apply HWE filters for your rare variants. You could filter for common variants first, then write the list of SNPs that do not meet HWE, and extract these from the full dataset of rare + common variants.
+#Write list of samples who are > 2 SDs from mean of heterozygosity
+sample_het <- sample_het %>% 
+  mutate(remove_het = ifelse(het > 2*sd_het + mean_het, "remove",
+                             ifelse(het < mean_het - 2*sd_het, "remove", "keep")))
 
 
-	#Generate stats file which shows HWE stats for each SNP (this doesn't filter any variants)
-	plink --bfile NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass \
-	 --hardy \
-	 --out NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe
+#Merge with callrate table
+sample_stats <- sample_het %>% 
+  left_join(sample_callrate, by = c("FID", "IID"))
 
-	#Filter out variants with HWE p value < 0.00001
-	plink --bfile NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass \
-	--hwe 0.00001 \
-	--make-bed \
-	--out NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe
-	#76 variants removed
+#Calculate genotyping rate (1 minus missing rate)
+sample_stats <- sample_stats %>% 
+  mutate(callrate = 1 - F_MISS)
+
+#Plot scatterplot
+ggplot(data = sample_stats, mapping = aes(x = het, y = callrate, color = remove_het)) +
+  geom_point() +
+  theme_bw()
+
+#Write list of samples to remove - if heterozygosity outliers or if callrate is <98%
+samples_to_remove <- sample_stats %>% 
+  filter(remove_het == "remove" | callrate < 0.98) %>% 
+  select(FID, IID)
+
+#Export as text file with just FID and IID
+write.table(samples_to_remove, "samples_to_remove.txt",
+            quote=F, col.names = F, row.names = F)
+
+```
+
+Now you should have a .txt file with the FIDs and IIDs of individuals you want to exclude, who do not meet call rate (>98%) or heterozygosity (2SDs away from mean) cutoffs.
+
+Exclude these individuals using plink.
+
+```
+plink --bfile NeuroChip.QSBB_PD.geno_0.95.maf_0.01 \
+--remove samples_to_remove.txt \
+--make-bed \
+--out NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD
+```
+
+# 3. Sex checking 
+
+First update clincal genders in fam file (if this has not been added in GenomeStudio).
+
+Need to create a .txt file with FID, IID and clinical sex (1 or M = male, 2 or F = female, 0 = missing)
+
+```
+plink --bfile NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD \
+--update-sex QSBB_clinicalGenders.txt \
+--make-bed \
+--out NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex
+```
+
+If you look at the fam file now you should see the sex column has been updated.
+
+Sex checking in plink
+```
+plink --bfile NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex \
+--check-sex 0.2 0.7 \
+--out NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexcheck_results
+```
+
+Can open the .sexcheck file in text editor. Check the mismatches. If there are lot, espcially on a plate, then there may have been a problem with the genotyping (plate flip, sample mixup)
+
+
+From your sexcheck results, write list of samples that pass sexcheck (FID and IID). If the clinical gender is missing (column 3 is 0) then these samples will still be included in this step. But you should definitely try to get the clinical gender for these samples
+```
+cat NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexcheck_results.sexcheck | awk '($3=="0" || $5=="OK") {print $1 "\t"$2}' > sex_samples_to_keep.txt
+```
+
+Remove sex discordant samples using plink
+```
+plink --bfile NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex \
+--keep sex_samples_to_keep.txt \
+--make-bed \
+--out NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass
+```
+
+# 4. Hardy Weinberg Equilibrium filtering
+
+You could do this filtering step in controls only, not including cases. 
+
+I have applied this filter when working with PD cases only. It is up to you.
+
+Also if you are working with rare variants (e.g. not GWAS), you may not want to apply HWE filters for your rare variants. You could filter for common variants first, then write the list of SNPs that do not meet HWE, and extract these from the full dataset of rare + common variants.
+
+
+Generate stats file which shows HWE stats for each SNP (this doesn't filter any variants, just makes some new files with the stats.)
+```
+plink --bfile NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass \
+--hardy \
+--out NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe
+```
+
+Filter out variants with HWE p value < 0.00001 (you decide what cutoff you want to use).
+```
+plink --bfile NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass \
+--hwe 0.00001 \
+--make-bed \
+--out NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe
+```
 
 ### IBD ###
 

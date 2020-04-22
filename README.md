@@ -255,7 +255,7 @@ plink --bfile NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.
 
 This does PCA using pruned SNP list. Only merging with CEU individuals
 
-HapMap SNP list is available in /data/kronos/NGS_Reference/HapMap_Reference/.
+HapMap SNP list and binary files are available in /data/kronos/NGS_Reference/HapMap_Reference/.
 
 I made a copy of these files in my local directory
 

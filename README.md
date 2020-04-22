@@ -155,7 +155,7 @@ First update clincal genders in fam file (if this has not been added in GenomeSt
 Need to create a .txt file with FID, IID and clinical sex (1 or M = male, 2 or F = female, 0 = missing)
 
 ```
-plink --bfile NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD \
+plink --bfile NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD \
 --update-sex QSBB_clinicalGenders.txt \
 --make-bed \
 --out NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex
@@ -175,7 +175,7 @@ Can open the .sexcheck file in text editor. Check the mismatches. If there are l
 
 From your sexcheck results, write list of samples that pass sexcheck (FID and IID). If the clinical gender is missing (column 3 is 0) then these samples will still be included in this step. But you should definitely try to get the clinical gender for these samples
 ```
-cat NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexcheck_results.sexcheck | awk '($3=="0" || $5=="OK") {print $1 "\t"$2}' > sex_samples_to_keep.txt
+cat NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexcheck_results.sexcheck | awk '($3=="0" || $5=="OK") {print $1 "\t"$2}' > sex_samples_to_keep.txt
 ```
 
 Remove sex discordant samples using plink
@@ -197,9 +197,9 @@ Also if you are working with rare variants (e.g. not GWAS), you may not want to 
 
 Generate stats file which shows HWE stats for each SNP (this doesn't filter any variants, just makes some new files with the stats.)
 ```
-plink --bfile NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass \
+plink --bfile NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass \
 --hardy \
---out NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe
+--out NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe
 ```
 
 Filter out variants with HWE p value < 0.00001 (you decide what cutoff you want to use).
@@ -226,7 +226,7 @@ Run IBD only on the pruned SNP list - called prune.in
 
 The min 0.1 means that plink will only output pairs of samples that have PI-HAT > 0.1. You can adjust this if you want to look at samples that are more distantly related
 ```
-plink --bfile NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe \
+plink --bfile NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe \
 --extract NeuroChip.pruned.prune.in \
 --genome \
 --min 0.1 \
@@ -501,10 +501,11 @@ write.table(PCA_outliers, "PCA_outliers.txt",
 
 Remove PCA outliers using plink, using the list of individuals that you just made in R.
 ```
-plink --bfile NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe.IBD_0.1 \
+plink --bfile NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe.IBD_0.1 \
 --remove PCA_outliers.txt \
 --make-bed \
 --out NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe.IBD_0.1.PCA_keep
 ```
 
 
+Good luck!!

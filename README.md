@@ -27,7 +27,10 @@ http://zzz.bwh.harvard.edu/plink/
 https://www.cog-genomics.org/plink/
 
 
-When you see code with '\' this just means continue the same command but on a new line. 
+When you see code with "\" this just means continue the same command but on a new line. 
+
+Also I recommend always looking at the plink log/output from your commands, check the total genotyping rate, number of variants, and number of individuals to make sure everything looks sensible.
+
 
 # 1. Extract set of individuals
 
@@ -46,35 +49,43 @@ plink --bfile NeuroChip \
 --out NeuroChip.QSBB_PD
 ```
 
-### QC - sample and SNP filtering ###
+# 2. QC - sample and SNP filtering
 
-	#Variant filtering - remove variants with MAF < 1% and genotyping rate < 95%
-	
-	plink --bfile NeuroChip_v1.1_run3-10.QSBB_PD \
-	--geno 0.05 \
-	--maf 0.01 \
-	--make-bed \
-	--out NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01
-	#6318 variants removed due to missing genotype data
-	#183839 variants removed due to MAF threshold
-	#0.997075 total genotyping rate
-	#279445 variants remaining
+Variant filtering - remove variants with MAF < 1% and genotyping rate < 95%
 
-	#Sample filtering - filter by sample genotyping rate and heterozygosity
-	
-	plink --bfile NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01 \
-	--missing \
-	--het \
-	--out NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc
-	#0.99845 total genotyping rate
+```
+plink --bfile NeuroChip.QSBB_PD \
+--geno 0.05 \
+--maf 0.01 \
+--make-bed \
+--out NeuroChip.QSBB_PD.geno_0.95.maf_0.01
+```
 
-	#Plot sample heterozygosity and genotyping rates
 
-	R --vanilla --slave \
-	--args NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.imiss NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.het imiss_het_plot.pdf < /data/kronos/mtan/QC_Rscripts/sampleqc.R
+Sample filtering - generate statistics for missingness and heterozygosity
 
-	#In R - run sampleqc_Rscript.R
-	#Creates text file with samples to remove with FID and IID
+```
+plink --bfile NeuroChip.QSBB_PD.geno_0.95.maf_0.01 \
+--missing \
+--het \
+--out NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc
+```
+
+
+Plot sample heterozygosity and genotyping rates. There are some QC R scripts in the /kronos/hmorris/QC_Rscripts folder.
+
+This command uses the sampleqc.R script to make a PDF scatterplot of your sample missingness vs. heterozygosity. Helpful to visualise and see if there are outliers. This is optional as you can also use the R code below to make these plots and format however you want.
+
+```
+R --vanilla --slave \
+--args NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.imiss NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.het \
+imiss_het_plot.pdf < /data/kronos/hmorris/QC_Rscripts/sampleqc.R
+```
+This makes a plot called imiss_het_plot.pdf (you can change the name).
+
+
+Plot sample heterozygosity and genotyping rates in R. This code makes a text file with samples to remove with FID and IID. Remove samples who do not meet call rate (>98%) or heterozygosity (2SDs away from mean) cutoffs. You can edit cutoffs depending on your data.
+
 
 	#Remove samples who do not meet call rate (>98%) or heterozygosity (2SDs away from mean) cutoffs
 

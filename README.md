@@ -210,42 +210,46 @@ plink --bfile NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.
 --out NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe
 ```
 
-### IBD ###
+# 5. IBD
 
-	#You don't need to do this step if you are doing family-based studies etc.
+You don't need to do this step if you are doing family-based studies etc.
 
-	#Create pruned list of variants (without restriction on MAF)
-	plink --bfile NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe \
-	--indep-pairwise 50 5 0.05 \
-	--out NeuroChip.pruned
+First create pruned list of variants (independent SNPs, removed variants that are in linkage) (without restriction on MAF)
+```
+plink --bfile NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe \
+--indep-pairwise 50 5 0.05 \
+--out NeuroChip.pruned
+```
 
-	#Run IBD only on the pruned SNP list - called prune.in
-	#The min 0.1 means that plink will only output pairs of samples that have PI-HAT > 0.1. You can adjust this if you want to look at samples that are more distantly related
-	plink --bfile NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe \
-	--extract NeuroChip.pruned.prune.in \
-	--genome \
-	--min 0.1 \
-	--out NeuroChip.IBD
-	#37704 variants used for IBD
 
-	#Look at your related samples (can open the IBD.genome file in text editor or Excel)
-	#PI-HAT of 1 indicates that the samples are the same individual or identical twins
-	#PI-HAT of 0.5 indicates parent/child relationship
-	#You need to use some judgement here to decide which samples to remove
-	#If you see one sample is related to lots of other people, this may indicate sample contamination
-	#You can remove one individual from each pair
-	#However if one related pair with PI-HAT close to 1 also has very similar sample IDs, I have removed both because this suggests there has been sample mixup
+Run IBD only on the pruned SNP list - called prune.in
 
-	#Write a list of individuals to remove (FID and IID in .txt file)
+The min 0.1 means that plink will only output pairs of samples that have PI-HAT > 0.1. You can adjust this if you want to look at samples that are more distantly related
+```
+plink --bfile NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe \
+--extract NeuroChip.pruned.prune.in \
+--genome \
+--min 0.1 \
+--out NeuroChip.IBD
+```
 
-	#Remove related individuals (pi-hat > 0.1)
-	plink --bfile NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe \
-	--remove IBD_remove.txt \
-	--make-bed \
-	--out NeuroChip_v1.1_run3-10.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe.IBD_0.1
-	#310 people remaining
-	#5 people removed
 
+Look at your related samples (can open the IBD.genome file in text editor or Excel). PI-HAT of 1 indicates that the samples are the same individual or identical twins. PI-HAT of 0.5 indicates parent/child relationship.
+
+You need to use some judgement here to decide which samples to remove. If you see one sample is related to lots of other people, this may indicate sample contamination. You can remove one individual from each pair
+
+However if one related pair with PI-HAT close to 1 also has very similar sample IDs, I have removed both because this suggests there has been sample mixup.
+
+
+Write a list of individuals to remove (FID and IID in .txt file).
+
+Remove related individuals (pi-hat > 0.1)
+```
+plink --bfile NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe \
+--remove IBD_remove.txt \
+--make-bed \
+--out NeuroChip.QSBB_PD.geno_0.95.maf_0.01.sampleqc.sample_0.98.het_2SD.updatedsex.sexpass.hwe.IBD_0.1
+```
 
 #PCA - using pruned SNP list. Only merging with CEU individuals
 

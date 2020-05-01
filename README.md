@@ -379,7 +379,7 @@ HapMap_pops_CEU <- HapMap_pops %>%
 write.table(HapMap_pops_CEU, "../../../../reference/hapmap/HapMap_CEU.txt",
             quote = FALSE, col.names = FALSE, row.names = FALSE)
 
-#---Merge PROBAND PCA data with HapMap population data---####
+#---Merge PCA data with HapMap population data---####
 
 geneticPCA_hapmap.eigenvec$FID <- as.factor(geneticPCA_hapmap.eigenvec$FID)
 
